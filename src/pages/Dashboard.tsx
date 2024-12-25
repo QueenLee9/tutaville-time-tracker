@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import type { Tables } from "@/integrations/supabase/types";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const Dashboard = () => {
         return;
       }
 
-      setUserRole(profile.role);
+      setUserRole(profile?.role ?? null);
       setLoading(false);
     };
 
@@ -70,7 +71,6 @@ const Dashboard = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard content will be implemented in the next iteration */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <p className="text-sage-600">
             Welcome to your {userRole} dashboard. More features coming soon!
