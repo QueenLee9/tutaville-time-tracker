@@ -18,9 +18,13 @@ const Dashboard = () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
+        }
         
         if (!session) {
+          console.log('No session found, redirecting to login');
           navigate('/');
           return;
         }
@@ -45,7 +49,7 @@ const Dashboard = () => {
         }
 
         console.log("Profile data:", profile);
-        setUserRole(profile?.role ?? null);
+        setUserRole(profile?.role as 'admin' | 'tutor' | null);
       } catch (error) {
         console.error('Auth check error:', error);
         toast({
