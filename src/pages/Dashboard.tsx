@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -29,7 +29,7 @@ const Dashboard = () => {
           return;
         }
 
-        console.log("Session found:", session.user.id);
+        console.log("Session found for user:", session.user.id);
 
         // Fetch user role from profiles
         const { data: profile, error: profileError } = await supabase
@@ -49,7 +49,18 @@ const Dashboard = () => {
         }
 
         console.log("Profile data:", profile);
-        setUserRole(profile?.role as 'admin' | 'tutor' | null);
+        
+        if (!profile) {
+          console.log("No profile found for user:", session.user.id);
+          toast({
+            title: "Profile Not Found",
+            description: "Your profile could not be loaded. Please try logging out and back in.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setUserRole(profile.role as 'admin' | 'tutor');
       } catch (error) {
         console.error('Auth check error:', error);
         toast({
