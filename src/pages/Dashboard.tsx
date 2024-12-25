@@ -15,40 +15,65 @@ const Dashboard = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/');
-        return;
-      }
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) throw sessionError;
+        
+        if (!session) {
+          navigate('/');
+          return;
+        }
 
-      // Fetch user role from profiles
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+        console.log("Session found:", session.user.id);
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+        // Fetch user role from profiles
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          toast({
+            title: "Error",
+            description: "Could not fetch user profile",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log("Profile data:", profile);
+        setUserRole(profile?.role ?? null);
+      } catch (error) {
+        console.error('Auth check error:', error);
         toast({
           title: "Error",
-          description: "Could not fetch user profile",
+          description: "Authentication error occurred",
           variant: "destructive",
         });
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setUserRole(profile?.role ?? null);
-      setLoading(false);
     };
 
     checkAuth();
   }, [navigate, toast]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate('/');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
