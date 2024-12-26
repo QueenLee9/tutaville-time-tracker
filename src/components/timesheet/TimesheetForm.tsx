@@ -56,6 +56,9 @@ export function TimesheetForm({ onSuccess }: { onSuccess?: () => void }) {
   const { data: subjects = [] } = useQuery({
     queryKey: ["tutor-subjects"],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) throw new Error("No authenticated user")
+
       const { data, error } = await supabase
         .from("tutor_subjects")
         .select(`
@@ -65,6 +68,7 @@ export function TimesheetForm({ onSuccess }: { onSuccess?: () => void }) {
             name
           )
         `)
+        .eq('tutor_id', session.user.id)
       
       if (error) throw error
       return data.map(ts => ts.subjects)
@@ -74,9 +78,19 @@ export function TimesheetForm({ onSuccess }: { onSuccess?: () => void }) {
   async function onSubmit(data: TimesheetFormData) {
     try {
       setIsSubmitting(true)
+      
+      // Get the current user's session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      if (!session?.user) throw new Error("No authenticated user")
+
+      // Insert timesheet with tutor_id
       const { error } = await supabase
         .from("timesheets")
-        .insert(data)
+        .insert({
+          ...data,
+          tutor_id: session.user.id,
+        })
 
       if (error) throw error
 
