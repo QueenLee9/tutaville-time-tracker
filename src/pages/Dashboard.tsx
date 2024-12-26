@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, TimesheetWithSubject } from "@/integrations/supabase/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Subject = Database['public']['Tables']['subjects']['Row'];
-type Timesheet = Database['public']['Tables']['timesheets']['Row'];
 
 const AdminDashboard = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -69,14 +68,12 @@ const AdminDashboard = () => {
         <TabsContent value="tutors">
           <div className="p-4 bg-white rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4">Manage Tutors</h3>
-            {/* Tutor management UI will be implemented next */}
             <p className="text-gray-500">Tutor management coming soon...</p>
           </div>
         </TabsContent>
         <TabsContent value="timesheets">
           <div className="p-4 bg-white rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4">Review Timesheets</h3>
-            {/* Timesheet review UI will be implemented next */}
             <p className="text-gray-500">Timesheet review coming soon...</p>
           </div>
         </TabsContent>
@@ -86,7 +83,7 @@ const AdminDashboard = () => {
 };
 
 const TutorDashboard = () => {
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  const [timesheets, setTimesheets] = useState<TimesheetWithSubject[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -136,7 +133,6 @@ const TutorDashboard = () => {
         </TabsList>
         <TabsContent value="submit" className="p-4 bg-white rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Submit Hours</h3>
-          {/* Hours submission form will be implemented next */}
           <p className="text-gray-500">Hours submission coming soon...</p>
         </TabsContent>
         <TabsContent value="history">
@@ -147,7 +143,7 @@ const TutorDashboard = () => {
                 <div key={timesheet.id} className="p-4 bg-warm-gray-50 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium">{(timesheet.subjects as any)?.name}</p>
+                      <p className="font-medium">{timesheet.subjects?.name || 'Unknown Subject'}</p>
                       <p className="text-sm text-gray-600">
                         {new Date(timesheet.date_worked).toLocaleDateString()}
                       </p>
@@ -174,7 +170,6 @@ const TutorDashboard = () => {
         <TabsContent value="profile">
           <div className="p-4 bg-white rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4">Profile Management</h3>
-            {/* Profile management UI will be implemented next */}
             <p className="text-gray-500">Profile management coming soon...</p>
           </div>
         </TabsContent>
