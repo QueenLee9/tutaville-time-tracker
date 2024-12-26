@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { TutorDashboard } from "@/components/dashboard/TutorDashboard";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -30,55 +33,48 @@ const Dashboard = () => {
 
         console.log("Session found for user:", session.user.id);
 
-        // Fetch profile with single query
+        // First, try to get the existing profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('*')
           .eq('id', session.user.id)
           .single();
 
         if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          toast({
-            title: "Error",
-            description: "Could not fetch user profile",
-            variant: "destructive",
-          });
-          return;
-        }
+          if (profileError.code === 'PGRST116') {
+            console.log("No profile found, creating one...");
+            // Create a default profile
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert([
+                { 
+                  id: session.user.id,
+                  role: 'tutor', // Default role
+                  email: session.user.email
+                }
+              ])
+              .select()
+              .single();
 
-        console.log("Profile data:", profile);
-        
-        if (!profile) {
-          console.log("No profile found for user:", session.user.id);
-          // Create a default profile if none exists
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert([
-              { 
-                id: session.user.id,
-                role: 'tutor' // Default role
-              }
-            ]);
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              throw insertError;
+            }
 
-          if (insertError) {
-            console.error('Error creating profile:', insertError);
-            toast({
-              title: "Error",
-              description: "Could not create user profile",
-              variant: "destructive",
-            });
-            return;
+            setUserRole(newProfile.role as 'admin' | 'tutor');
+          } else {
+            console.error('Error fetching profile:', profileError);
+            throw profileError;
           }
-          setUserRole('tutor');
         } else {
+          console.log("Profile found:", profile);
           setUserRole(profile.role as 'admin' | 'tutor');
         }
       } catch (error) {
         console.error('Auth check error:', error);
         toast({
           title: "Error",
-          description: "Authentication error occurred",
+          description: "Failed to load user profile",
           variant: "destructive",
         });
       } finally {
