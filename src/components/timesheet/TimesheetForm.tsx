@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -9,11 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { DatePicker } from "./DatePicker"
 import { SubjectSelect } from "./SubjectSelect"
-
-// Define the prop types for TimesheetForm
-interface TimesheetFormProps {
-  onSuccess?: () => Promise<void> | void;
-}
+import { format } from "date-fns"
 
 const timesheetSchema = z.object({
   subject_id: z.string().uuid("Please select a subject"),
@@ -22,11 +18,17 @@ const timesheetSchema = z.object({
   notes: z.string().optional()
 })
 
+type TimesheetFormValues = z.infer<typeof timesheetSchema>
+
+interface TimesheetFormProps {
+  onSuccess?: () => Promise<void> | void
+}
+
 export const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  const form = useForm<z.infer<typeof timesheetSchema>>({
+  const form = useForm<TimesheetFormValues>({
     resolver: zodResolver(timesheetSchema),
     defaultValues: {
       hours_worked: 0,
@@ -34,7 +36,7 @@ export const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSuccess }) => {
     }
   })
 
-  const onSubmit = async (data: z.infer<typeof timesheetSchema>) => {
+  const onSubmit = async (data: TimesheetFormValues) => {
     setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -47,7 +49,7 @@ export const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSuccess }) => {
         tutor_id: session.user.id,
         subject_id: data.subject_id,
         hours_worked: data.hours_worked,
-        date_worked: data.date_worked,
+        date_worked: format(data.date_worked, 'yyyy-MM-dd'),
         notes: data.notes || null
       })
 
@@ -61,7 +63,6 @@ export const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSuccess }) => {
 
       form.reset()
       
-      // Call onSuccess callback if provided
       if (onSuccess) {
         await onSuccess()
       }
@@ -80,7 +81,19 @@ export const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSuccess }) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <SubjectSelect form={form} />
+        <FormField
+          control={form.control}
+          name="subject_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subject</FormLabel>
+              <FormControl>
+                <SubjectSelect value={field.value} onChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <FormField
           control={form.control}
@@ -101,7 +114,19 @@ export const TimesheetForm: React.FC<TimesheetFormProps> = ({ onSuccess }) => {
           )}
         />
 
-        <DatePicker form={form} />
+        <FormField
+          control={form.control}
+          name="date_worked"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Date Worked</FormLabel>
+              <FormControl>
+                <DatePicker date={field.value} onSelect={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
