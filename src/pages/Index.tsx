@@ -3,21 +3,57 @@ import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log("Auth state changed:", event);
+        
         if (event === "SIGNED_IN" && session) {
           navigate("/dashboard");
+        } else if (event === "USER_DELETED" || event === "SIGNED_OUT") {
+          navigate("/");
+        } else if (event === "SIGNED_UP") {
+          toast({
+            title: "Account created",
+            description: "Please check your email to verify your account",
+          });
         }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Handle auth errors
+    const handleAuthError = (error: Error) => {
+      console.error("Auth error:", error);
+      
+      if (error.message.includes("User already registered")) {
+        toast({
+          title: "Account exists",
+          description: "This email is already registered. Please sign in instead.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "An error occurred during authentication. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Subscribe to auth errors
+    const authListener = supabase.auth.onError(handleAuthError);
+
+    return () => {
+      subscription.unsubscribe();
+      authListener.data.subscription.unsubscribe();
+    };
+  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sage-50 to-sage-100">
