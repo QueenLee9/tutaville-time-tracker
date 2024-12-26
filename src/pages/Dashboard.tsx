@@ -30,11 +30,12 @@ const Dashboard = () => {
 
         console.log("Session found for user:", session.user.id);
 
+        // Fetch profile with single query
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .maybeSingle();
+          .single();
 
         if (profileError) {
           console.error('Error fetching profile:', profileError);
@@ -50,15 +51,29 @@ const Dashboard = () => {
         
         if (!profile) {
           console.log("No profile found for user:", session.user.id);
-          toast({
-            title: "Profile Not Found",
-            description: "Your profile could not be loaded. Please try logging out and back in.",
-            variant: "destructive",
-          });
-          return;
-        }
+          // Create a default profile if none exists
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([
+              { 
+                id: session.user.id,
+                role: 'tutor' // Default role
+              }
+            ]);
 
-        setUserRole(profile.role as 'admin' | 'tutor');
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+            toast({
+              title: "Error",
+              description: "Could not create user profile",
+              variant: "destructive",
+            });
+            return;
+          }
+          setUserRole('tutor');
+        } else {
+          setUserRole(profile.role as 'admin' | 'tutor');
+        }
       } catch (error) {
         console.error('Auth check error:', error);
         toast({
