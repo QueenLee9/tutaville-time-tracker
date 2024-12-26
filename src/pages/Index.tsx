@@ -16,9 +16,9 @@ const Index = () => {
         
         if (event === "SIGNED_IN" && session) {
           navigate("/dashboard");
-        } else if (event === "USER_DELETED" || event === "SIGNED_OUT") {
+        } else if (event === "SIGNED_OUT") {
           navigate("/");
-        } else if (event === "SIGNED_UP") {
+        } else if (event === "USER_UPDATED" && event.toString() === "SIGNED_UP") {
           toast({
             title: "Account created",
             description: "Please check your email to verify your account",
@@ -27,17 +27,18 @@ const Index = () => {
       }
     );
 
-    // Handle auth errors
-    const handleAuthError = (error: Error) => {
-      console.error("Auth error:", error);
+    // Handle auth errors using the session state change
+    const handleAuthError = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get('error_description');
       
-      if (error.message.includes("User already registered")) {
+      if (error?.includes("User already registered")) {
         toast({
           title: "Account exists",
           description: "This email is already registered. Please sign in instead.",
           variant: "destructive",
         });
-      } else {
+      } else if (error) {
         toast({
           title: "Error",
           description: "An error occurred during authentication. Please try again.",
@@ -46,12 +47,11 @@ const Index = () => {
       }
     };
 
-    // Subscribe to auth errors
-    const authListener = supabase.auth.onError(handleAuthError);
+    // Check for auth errors on mount
+    handleAuthError();
 
     return () => {
       subscription.unsubscribe();
-      authListener.data.subscription.unsubscribe();
     };
   }, [navigate, toast]);
 
