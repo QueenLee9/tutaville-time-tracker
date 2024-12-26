@@ -1,48 +1,49 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import type { TimesheetWithSubject } from "@/integrations/supabase/types";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from "react"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
+import type { TimesheetWithSubject } from "@/integrations/supabase/types/timesheet"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TimesheetForm } from "@/components/timesheet/TimesheetForm"
 
 export const TutorDashboard = () => {
-  const [timesheets, setTimesheets] = useState<TimesheetWithSubject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [timesheets, setTimesheets] = useState<TimesheetWithSubject[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+
+  const fetchTimesheets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select(`
+          *,
+          subjects (
+            *
+          )
+        `)
+        .order('date_worked', { ascending: false })
+      
+      if (error) throw error
+      setTimesheets(data || [])
+    } catch (error) {
+      console.error('Error fetching timesheets:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load timesheets",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchTimesheets = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('timesheets')
-          .select(`
-            *,
-            subjects (
-              *
-            )
-          `)
-          .order('date_worked', { ascending: false });
-        
-        if (error) throw error;
-        setTimesheets(data || []);
-      } catch (error) {
-        console.error('Error fetching timesheets:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load timesheets",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTimesheets();
-  }, [toast]);
+    fetchTimesheets()
+  }, [toast])
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900"></div>
-    </div>;
+    </div>
   }
 
   return (
@@ -55,7 +56,7 @@ export const TutorDashboard = () => {
         </TabsList>
         <TabsContent value="submit" className="p-4 bg-white rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Submit Hours</h3>
-          <p className="text-gray-500">Hours submission coming soon...</p>
+          <TimesheetForm onSuccess={fetchTimesheets} />
         </TabsContent>
         <TabsContent value="history">
           <div className="p-4 bg-white rounded-lg shadow">
@@ -97,5 +98,5 @@ export const TutorDashboard = () => {
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
