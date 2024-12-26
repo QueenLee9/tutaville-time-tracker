@@ -45,6 +45,16 @@ const Index = () => {
           variant: "destructive",
         });
       }
+
+      // New error handling for login credentials
+      const loginError = urlParams.get('error');
+      if (loginError === 'invalid_credentials') {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      }
     };
 
     // Check for auth errors on mount
