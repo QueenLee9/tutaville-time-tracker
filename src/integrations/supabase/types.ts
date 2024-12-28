@@ -62,6 +62,8 @@ export type Database = {
       }
       timesheets: {
         Row: {
+          approval_date: string | null
+          approved_by: string | null
           created_at: string
           date_worked: string
           hours_worked: number
@@ -73,6 +75,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_date?: string | null
+          approved_by?: string | null
           created_at?: string
           date_worked: string
           hours_worked: number
@@ -84,6 +88,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_date?: string | null
+          approved_by?: string | null
           created_at?: string
           date_worked?: string
           hours_worked?: number
@@ -95,6 +101,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "timesheets_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "timesheets_subject_id_fkey"
             columns: ["subject_id"]
@@ -114,16 +127,19 @@ export type Database = {
       tutor_subjects: {
         Row: {
           assigned_at: string
+          rate_per_hour: number | null
           subject_id: string
           tutor_id: string
         }
         Insert: {
           assigned_at?: string
+          rate_per_hour?: number | null
           subject_id: string
           tutor_id: string
         }
         Update: {
           assigned_at?: string
+          rate_per_hour?: number | null
           subject_id?: string
           tutor_id?: string
         }
