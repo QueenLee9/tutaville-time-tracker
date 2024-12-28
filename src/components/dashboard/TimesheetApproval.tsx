@@ -4,32 +4,35 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
-type Timesheet = Database['public']['Tables']['timesheets']['Row'] & {
-  profiles: {
+type BaseTimesheet = Database['public']['Tables']['timesheets']['Row'];
+
+interface TimesheetWithRelations extends BaseTimesheet {
+  profiles?: {
     first_name: string | null;
     last_name: string | null;
   } | null;
-  subjects: {
-    name: string;
+  subjects?: {
+    name: string | null;
   } | null;
-};
+}
 
 interface TimesheetApprovalProps {
   onSuccess: () => void;
 }
 
 export const TimesheetApproval = ({ onSuccess }: TimesheetApprovalProps) => {
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  const [timesheets, setTimesheets] = useState<TimesheetWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchTimesheets = async () => {
     try {
+      console.log("Fetching pending timesheets...");
       const { data, error } = await supabase
         .from('timesheets')
         .select(`
           *,
-          profiles (
+          profiles!timesheets_tutor_id_fkey (
             first_name,
             last_name
           ),
@@ -40,7 +43,11 @@ export const TimesheetApproval = ({ onSuccess }: TimesheetApprovalProps) => {
         .eq('status', 'pending')
         .order('date_worked', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching timesheets:', error);
+        throw error;
+      }
+      
       console.log("Fetched timesheets:", data);
       setTimesheets(data || []);
     } catch (error) {
@@ -106,9 +113,9 @@ export const TimesheetApproval = ({ onSuccess }: TimesheetApprovalProps) => {
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h4 className="font-medium">
-                  {timesheet.profiles?.first_name} {timesheet.profiles?.last_name}
+                  {timesheet.profiles?.first_name || 'Unknown'} {timesheet.profiles?.last_name || 'Tutor'}
                 </h4>
-                <p className="text-sm text-gray-600">{timesheet.subjects?.name}</p>
+                <p className="text-sm text-gray-600">{timesheet.subjects?.name || 'Unknown Subject'}</p>
               </div>
               <div className="text-right">
                 <p className="font-medium">{timesheet.hours_worked} hours</p>
