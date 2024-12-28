@@ -32,6 +32,7 @@ const Dashboard = () => {
         }
 
         console.log("Session found for user:", session.user.id);
+        console.log("User email:", session.user.email);
 
         // First, try to get the existing profile
         const { data: profile, error: profileError } = await supabase
@@ -43,13 +44,17 @@ const Dashboard = () => {
         if (profileError) {
           if (profileError.code === 'PGRST116') {
             console.log("No profile found, creating one...");
-            // Create a default profile
+            // Set role based on email
+            const role = session.user.email === 'demo@admin.com' ? 'admin' : 'tutor';
+            console.log("Setting role to:", role);
+            
+            // Create a default profile with the determined role
             const { data: newProfile, error: insertError } = await supabase
               .from('profiles')
               .insert([
                 { 
                   id: session.user.id,
-                  role: 'tutor', // Default role
+                  role: role,
                   email: session.user.email
                 }
               ])
@@ -68,7 +73,22 @@ const Dashboard = () => {
           }
         } else {
           console.log("Profile found:", profile);
-          setUserRole(profile.role as 'admin' | 'tutor');
+          // If the user is demo@admin.com and doesn't have admin role, update it
+          if (session.user.email === 'demo@admin.com' && profile.role !== 'admin') {
+            console.log("Updating demo@admin.com to admin role");
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ role: 'admin' })
+              .eq('id', session.user.id);
+
+            if (updateError) {
+              console.error('Error updating profile:', updateError);
+              throw updateError;
+            }
+            setUserRole('admin');
+          } else {
+            setUserRole(profile.role as 'admin' | 'tutor');
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error);
