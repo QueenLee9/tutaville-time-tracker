@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { TutorSubjectForm } from "./TutorSubjectForm";
 import { TimesheetApproval } from "./TimesheetApproval";
@@ -25,6 +27,9 @@ export const AdminDashboard = () => {
   const [tutorSubjects, setTutorSubjects] = useState<TutorSubject[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTutor, setSelectedTutor] = useState<Profile | null>(null);
+  const [showDeleteTutorDialog, setShowDeleteTutorDialog] = useState(false);
+  const [showDeleteSubjectDialog, setShowDeleteSubjectDialog] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -83,6 +88,86 @@ export const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteTutor = async () => {
+    if (!selectedTutor) return;
+
+    try {
+      console.log("Deleting tutor:", selectedTutor.id);
+      
+      // First delete related tutor_subjects
+      const { error: tsError } = await supabase
+        .from('tutor_subjects')
+        .delete()
+        .eq('tutor_id', selectedTutor.id);
+
+      if (tsError) throw tsError;
+
+      // Then delete the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', selectedTutor.id);
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Success",
+        description: "Tutor deleted successfully",
+      });
+
+      setShowDeleteTutorDialog(false);
+      setSelectedTutor(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting tutor:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete tutor",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSubject = async () => {
+    if (!selectedSubject) return;
+
+    try {
+      console.log("Deleting subject:", selectedSubject.id);
+      
+      // First delete related tutor_subjects
+      const { error: tsError } = await supabase
+        .from('tutor_subjects')
+        .delete()
+        .eq('subject_id', selectedSubject.id);
+
+      if (tsError) throw tsError;
+
+      // Then delete the subject
+      const { error: subjectError } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', selectedSubject.id);
+
+      if (subjectError) throw subjectError;
+
+      toast({
+        title: "Success",
+        description: "Subject deleted successfully",
+      });
+
+      setShowDeleteSubjectDialog(false);
+      setSelectedSubject(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete subject",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -136,6 +221,15 @@ export const AdminDashboard = () => {
             {subjects.map((subject) => (
               <div key={subject.id} className="flex items-center justify-between p-3 bg-warm-gray-50 rounded-lg">
                 <span>{subject.name}</span>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    setSelectedSubject(subject);
+                    setShowDeleteSubjectDialog(true);
+                  }}
+                >
+                  Delete
+                </Button>
               </div>
             ))}
           </div>
@@ -206,6 +300,15 @@ export const AdminDashboard = () => {
                         />
                       </DialogContent>
                     </Dialog>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setSelectedTutor(tutor);
+                        setShowDeleteTutorDialog(true);
+                      }}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -220,6 +323,46 @@ export const AdminDashboard = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Tutor Confirmation Dialog */}
+      <Dialog open={showDeleteTutorDialog} onOpenChange={setShowDeleteTutorDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Tutor</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this tutor? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteTutorDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteTutor}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Subject Confirmation Dialog */}
+      <Dialog open={showDeleteSubjectDialog} onOpenChange={setShowDeleteSubjectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Subject</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this subject? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteSubjectDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteSubject}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
