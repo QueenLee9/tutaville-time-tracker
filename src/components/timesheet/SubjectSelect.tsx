@@ -18,25 +18,72 @@ interface SubjectSelectProps {
 
 export const SubjectSelect = ({ value, onChange }: SubjectSelectProps) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSubjects = async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.user.id) return;
+      try {
+        console.log("Fetching subjects for tutor...");
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session?.user.id) {
+          console.log("No user session found");
+          return;
+        }
 
-      const { data } = await supabase
-        .from('tutor_subjects')
-        .select('subject_id, subjects(*)')
-        .eq('tutor_id', session.session.user.id);
+        const { data, error } = await supabase
+          .from('tutor_subjects')
+          .select(`
+            subject_id,
+            subjects (
+              id,
+              name
+            )
+          `)
+          .eq('tutor_id', session.session.user.id);
 
-      if (data) {
-        const subjectsData = data.map(item => item.subjects as Subject).filter(Boolean);
-        setSubjects(subjectsData);
+        if (error) {
+          console.error('Error fetching subjects:', error);
+          return;
+        }
+
+        console.log("Fetched tutor subjects:", data);
+        
+        if (data) {
+          const subjectsData = data
+            .map(item => item.subjects as Subject)
+            .filter(Boolean);
+          console.log("Processed subjects data:", subjectsData);
+          setSubjects(subjectsData);
+        }
+      } catch (error) {
+        console.error('Error in fetchSubjects:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchSubjects();
   }, []);
+
+  if (loading) {
+    return (
+      <Select disabled value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Loading subjects..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
+  if (subjects.length === 0) {
+    return (
+      <Select disabled value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="No subjects assigned" />
+        </SelectTrigger>
+      </Select>
+    );
+  }
 
   return (
     <Select value={value} onValueChange={onChange}>
