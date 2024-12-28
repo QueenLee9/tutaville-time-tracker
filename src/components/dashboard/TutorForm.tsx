@@ -65,12 +65,39 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
         if (error) throw error;
       } else {
         console.log("Creating new tutor with values:", values);
+        const { data: existingUser, error: checkError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", values.email)
+          .single();
+
+        if (existingUser) {
+          console.log("User already exists with email:", values.email);
+          toast({
+            title: "Error",
+            description: "A tutor with this email already exists",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const { data: authUser, error: authError } = await supabase.auth.signUp({
           email: values.email,
           password: "tempPassword123", // You might want to generate this randomly
         });
 
-        if (authError) throw authError;
+        if (authError) {
+          console.error("Auth error:", authError);
+          if (authError.message.includes("already registered")) {
+            toast({
+              title: "Error",
+              description: "A user with this email already exists",
+              variant: "destructive",
+            });
+            return;
+          }
+          throw authError;
+        }
 
         if (!authUser.user?.id) {
           throw new Error("Failed to create auth user");
