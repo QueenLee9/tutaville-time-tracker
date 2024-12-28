@@ -50,15 +50,48 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
 
   const onSubmit = async (values: FormValues) => {
     try {
+      console.log("Submitting tutor form:", { isEditing, values });
+      
       if (isEditing) {
+        console.log("Updating existing tutor:", { tutorId: tutor.id, values });
         const { error } = await supabase
           .from("profiles")
-          .update(values)
+          .update({
+            ...values,
+            updated_at: new Date().toISOString(),
+          })
           .eq("id", tutor.id);
 
         if (error) throw error;
+      } else {
+        console.log("Creating new tutor with values:", values);
+        const { data: authUser, error: authError } = await supabase.auth.signUp({
+          email: values.email,
+          password: "tempPassword123", // You might want to generate this randomly
+        });
+
+        if (authError) throw authError;
+
+        if (!authUser.user?.id) {
+          throw new Error("Failed to create auth user");
+        }
+
+        console.log("Created auth user:", authUser.user.id);
+
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            ...values,
+            role: 'tutor',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", authUser.user.id);
+
+        if (profileError) throw profileError;
       }
 
+      console.log("Operation successful");
       toast({
         title: "Success",
         description: `Tutor ${isEditing ? "updated" : "added"} successfully`,
@@ -114,7 +147,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" {...field} />
+                <Input type="email" {...field} disabled={isEditing} />
               </FormControl>
               <FormMessage />
             </FormItem>
