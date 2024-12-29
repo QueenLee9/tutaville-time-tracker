@@ -49,9 +49,8 @@ export const AdminDashboard = () => {
       console.log("Fetched tutors:", tutorsResponse.data);
       console.log("Fetched tutor subjects:", tutorSubjectsResponse.data);
 
-      // Filter out tutors with no email (likely incomplete records)
-      const validTutors = tutorsResponse.data.filter(tutor => tutor.email);
-      setTutors(validTutors);
+      // Don't filter out tutors without email - show all tutors
+      setTutors(tutorsResponse.data || []);
       setSubjects(subjectsResponse.data || []);
       setTutorSubjects(tutorSubjectsResponse.data || []);
     } catch (error) {
@@ -260,11 +259,11 @@ export const AdminDashboard = () => {
                 <div key={tutor.id} className="flex items-center justify-between p-4 bg-warm-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-medium">
-                      {tutor.first_name && tutor.last_name 
-                        ? `${tutor.first_name} ${tutor.last_name}`
-                        : tutor.email || 'Unnamed Tutor'}
+                      {tutor.first_name || tutor.last_name ? 
+                        `${tutor.first_name || ''} ${tutor.last_name || ''}`.trim() :
+                        tutor.email || 'Unnamed Tutor'}
                     </h4>
-                    <p className="text-sm text-gray-600">{tutor.email}</p>
+                    {tutor.email && <p className="text-sm text-gray-600">{tutor.email}</p>}
                   </div>
                   <div className="space-x-2">
                     <Dialog>
@@ -272,7 +271,6 @@ export const AdminDashboard = () => {
                         <Button
                           variant="outline"
                           className="bg-yellow-400 hover:bg-yellow-500 text-blue-900"
-                          onClick={() => setSelectedTutor(tutor)}
                         >
                           Edit
                         </Button>

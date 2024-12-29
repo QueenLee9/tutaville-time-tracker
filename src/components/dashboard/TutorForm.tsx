@@ -38,6 +38,8 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
   const { toast } = useToast();
   const isEditing = !!tutor;
 
+  console.log("TutorForm initialized with tutor:", tutor);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -153,7 +155,9 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
       });
       
       onSuccess();
-      form.reset();
+      if (!isEditing) {
+        form.reset();
+      }
     } catch (error) {
       console.error("Error saving tutor:", error);
       toast({
