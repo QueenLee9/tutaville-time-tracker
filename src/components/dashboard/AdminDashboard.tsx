@@ -64,6 +64,31 @@ export const AdminDashboard = () => {
     }
   };
 
+  const handleAddSubject = async (name: string) => {
+    try {
+      console.log("Adding new subject:", name);
+      const { error } = await supabase
+        .from('subjects')
+        .insert([{ name }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Subject added successfully",
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error adding subject:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add subject",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteTutor = async () => {
     if (!selectedTutor) return;
 
