@@ -36,6 +36,9 @@ export const TutorSubjectForm = ({ tutor, subjects, existingAssignments, onSucce
     if (!tutor) return;
 
     try {
+      console.log("Submitting subject assignments for tutor:", tutor.id);
+      console.log("Current assignments state:", assignments);
+      
       // Remove existing assignments
       const { error: deleteError } = await supabase
         .from('tutor_subjects')
@@ -52,6 +55,8 @@ export const TutorSubjectForm = ({ tutor, subjects, existingAssignments, onSucce
           subject_id: subjectId,
           rate_per_hour: value.rate
         }));
+
+      console.log("New assignments to be created:", newAssignments);
 
       if (newAssignments.length > 0) {
         const { error: insertError } = await supabase

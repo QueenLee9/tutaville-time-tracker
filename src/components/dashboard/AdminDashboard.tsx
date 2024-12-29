@@ -64,30 +64,6 @@ export const AdminDashboard = () => {
     }
   };
 
-  const handleAddSubject = async (name: string) => {
-    try {
-      const { error } = await supabase
-        .from('subjects')
-        .insert([{ name }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Subject added successfully",
-      });
-
-      fetchData();
-    } catch (error) {
-      console.error('Error adding subject:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add subject",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleDeleteTutor = async () => {
     if (!selectedTutor) return;
 
@@ -117,7 +93,7 @@ export const AdminDashboard = () => {
 
       setShowDeleteTutorDialog(false);
       setSelectedTutor(null);
-      fetchData();
+      fetchData(); // Refresh the data after deletion
     } catch (error) {
       console.error('Error deleting tutor:', error);
       toast({
@@ -286,7 +262,6 @@ export const AdminDashboard = () => {
                         <Button
                           variant="outline"
                           className="bg-blue-400 hover:bg-blue-500 text-white"
-                          onClick={() => setSelectedTutor(tutor)}
                         >
                           Assign Subjects
                         </Button>
