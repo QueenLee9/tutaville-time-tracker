@@ -49,7 +49,6 @@ export const AdminDashboard = () => {
       console.log("Fetched tutors:", tutorsResponse.data);
       console.log("Fetched tutor subjects:", tutorSubjectsResponse.data);
 
-      // Don't filter out tutors without email - show all tutors
       setTutors(tutorsResponse.data || []);
       setSubjects(subjectsResponse.data || []);
       setTutorSubjects(tutorSubjectsResponse.data || []);

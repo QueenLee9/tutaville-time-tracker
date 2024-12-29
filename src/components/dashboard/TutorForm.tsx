@@ -64,62 +64,63 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
           })
           .eq("id", tutor.id);
 
-        if (updateError) {
-          console.error("Error updating tutor:", updateError);
-          throw updateError;
-        }
-
+        if (updateError) throw updateError;
         console.log("Successfully updated tutor profile");
       } else {
         console.log("Creating new tutor with values:", values);
         
-        // First check if user exists in profiles table using maybeSingle()
-        const { data: existingProfile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("email", values.email)
-          .maybeSingle();
+        // First check if user exists in auth
+        const { data: authUser, error: authError } = await supabase.auth.signUp({
+          email: values.email,
+          password: "tempPassword123", // You might want to generate this randomly
+        });
 
-        if (profileError) {
-          console.error("Error checking existing profile:", profileError);
-          throw profileError;
-        }
+        if (authError) {
+          console.error("Auth error:", authError);
+          if (authError.message.includes("already registered")) {
+            // If user exists in auth, check if they exist in profiles
+            const { data: existingProfile, error: profileError } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("email", values.email)
+              .maybeSingle();
 
-        if (existingProfile) {
-          console.log("Profile already exists with email:", values.email);
-          toast({
-            title: "Error",
-            description: "A tutor with this email already exists",
-            variant: "destructive",
-          });
-          return;
-        }
+            if (profileError) throw profileError;
 
-        try {
-          const { data: authUser, error: authError } = await supabase.auth.signUp({
-            email: values.email,
-            password: "tempPassword123", // You might want to generate this randomly
-          });
-
-          if (authError) {
-            console.error("Auth error:", authError);
-            if (authError.message.includes("already registered")) {
+            if (existingProfile) {
               toast({
                 title: "Error",
-                description: "A user with this email already exists",
+                description: "A tutor with this email already exists",
                 variant: "destructive",
               });
               return;
             }
+
+            // If they exist in auth but not in profiles, we need their auth ID
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(values.email);
+            if (userError) throw userError;
+
+            if (!userData?.user?.id) {
+              throw new Error("Could not find user ID");
+            }
+
+            // Create profile for existing auth user
+            const { error: createProfileError } = await supabase
+              .from("profiles")
+              .insert({
+                id: userData.user.id,
+                ...values,
+                role: 'tutor',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+
+            if (createProfileError) throw createProfileError;
+          } else {
             throw authError;
           }
-
-          if (!authUser.user?.id) {
-            throw new Error("Failed to create auth user");
-          }
-
-          console.log("Created auth user:", authUser.user.id);
-
+        } else if (authUser?.user?.id) {
+          // New user created in auth, update their profile
           const { error: profileError } = await supabase
             .from("profiles")
             .update({
@@ -130,21 +131,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             })
             .eq("id", authUser.user.id);
 
-          if (profileError) {
-            console.error("Error creating profile:", profileError);
-            throw profileError;
-          }
-        } catch (error: any) {
-          console.error("Error in auth/profile creation:", error);
-          if (error.message?.includes("already registered")) {
-            toast({
-              title: "Error",
-              description: "A user with this email already exists",
-              variant: "destructive",
-            });
-            return;
-          }
-          throw error;
+          if (profileError) throw profileError;
         }
       }
 
