@@ -30,13 +30,14 @@ export const AdminDashboard = () => {
   const [showDeleteTutorDialog, setShowDeleteTutorDialog] = useState(false);
   const [showDeleteSubjectDialog, setShowDeleteSubjectDialog] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [addSubjectDialogOpen, setAddSubjectDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async () => {
     try {
       console.log("Fetching admin dashboard data...");
       const [subjectsResponse, tutorsResponse, tutorSubjectsResponse] = await Promise.all([
-        supabase.from('subjects').select('*'),
+        supabase.from('subjects').select('*').order('name'),
         supabase.from('profiles').select('*').eq('role', 'tutor'),
         supabase.from('tutor_subjects').select('*')
       ]);
@@ -78,7 +79,8 @@ export const AdminDashboard = () => {
         description: "Subject added successfully",
       });
 
-      fetchData();
+      await fetchData(); // Immediately refresh data
+      setAddSubjectDialogOpen(false); // Close dialog after success
     } catch (error) {
       console.error('Error adding subject:', error);
       toast({
@@ -118,7 +120,7 @@ export const AdminDashboard = () => {
 
       setShowDeleteTutorDialog(false);
       setSelectedTutor(null);
-      fetchData(); // Refresh the data after deletion
+      await fetchData(); // Immediately refresh data
     } catch (error) {
       console.error('Error deleting tutor:', error);
       toast({
@@ -158,7 +160,7 @@ export const AdminDashboard = () => {
 
       setShowDeleteSubjectDialog(false);
       setSelectedSubject(null);
-      fetchData();
+      await fetchData(); // Immediately refresh data
     } catch (error) {
       console.error('Error deleting subject:', error);
       toast({
@@ -191,7 +193,7 @@ export const AdminDashboard = () => {
         <TabsContent value="subjects" className="p-4 bg-white rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold">Manage Subjects</h3>
-            <Dialog>
+            <Dialog open={addSubjectDialogOpen} onOpenChange={setAddSubjectDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-yellow-400 hover:bg-yellow-500 text-blue-900">
                   Add New Subject
@@ -205,7 +207,6 @@ export const AdminDashboard = () => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
                   handleAddSubject(formData.get('name') as string);
-                  (e.target as HTMLFormElement).reset();
                 }} className="space-y-4">
                   <input
                     name="name"
