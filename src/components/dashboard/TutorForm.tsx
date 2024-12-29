@@ -54,7 +54,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
       
       if (isEditing && tutor) {
         console.log("Updating existing tutor:", { tutorId: tutor.id, values });
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from("profiles")
           .update({
             ...values,
@@ -62,34 +62,29 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
           })
           .eq("id", tutor.id);
 
-        if (error) {
-          console.error("Error updating tutor:", error);
-          throw error;
+        if (updateError) {
+          console.error("Error updating tutor:", updateError);
+          throw updateError;
         }
 
-        // Verify the update was successful
-        const { data: updatedTutor, error: fetchError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", tutor.id)
-          .single();
-
-        if (fetchError) {
-          console.error("Error fetching updated tutor:", fetchError);
-          throw fetchError;
-        }
-
-        console.log("Successfully updated tutor:", updatedTutor);
+        console.log("Successfully updated tutor profile");
       } else {
         console.log("Creating new tutor with values:", values);
-        const { data: existingUser, error: checkError } = await supabase
+        
+        // First check if user exists in profiles table using maybeSingle()
+        const { data: existingProfile, error: profileError } = await supabase
           .from("profiles")
           .select("id")
           .eq("email", values.email)
-          .single();
+          .maybeSingle();
 
-        if (existingUser) {
-          console.log("User already exists with email:", values.email);
+        if (profileError) {
+          console.error("Error checking existing profile:", profileError);
+          throw profileError;
+        }
+
+        if (existingProfile) {
+          console.log("Profile already exists with email:", values.email);
           toast({
             title: "Error",
             description: "A tutor with this email already exists",
@@ -98,14 +93,48 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
           return;
         }
 
-        const { data: authUser, error: authError } = await supabase.auth.signUp({
-          email: values.email,
-          password: "tempPassword123", // You might want to generate this randomly
-        });
+        try {
+          const { data: authUser, error: authError } = await supabase.auth.signUp({
+            email: values.email,
+            password: "tempPassword123", // You might want to generate this randomly
+          });
 
-        if (authError) {
-          console.error("Auth error:", authError);
-          if (authError.message.includes("already registered")) {
+          if (authError) {
+            console.error("Auth error:", authError);
+            if (authError.message.includes("already registered")) {
+              toast({
+                title: "Error",
+                description: "A user with this email already exists",
+                variant: "destructive",
+              });
+              return;
+            }
+            throw authError;
+          }
+
+          if (!authUser.user?.id) {
+            throw new Error("Failed to create auth user");
+          }
+
+          console.log("Created auth user:", authUser.user.id);
+
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({
+              ...values,
+              role: 'tutor',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", authUser.user.id);
+
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+            throw profileError;
+          }
+        } catch (error: any) {
+          console.error("Error in auth/profile creation:", error);
+          if (error.message?.includes("already registered")) {
             toast({
               title: "Error",
               description: "A user with this email already exists",
@@ -113,26 +142,8 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             });
             return;
           }
-          throw authError;
+          throw error;
         }
-
-        if (!authUser.user?.id) {
-          throw new Error("Failed to create auth user");
-        }
-
-        console.log("Created auth user:", authUser.user.id);
-
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            ...values,
-            role: 'tutor',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", authUser.user.id);
-
-        if (profileError) throw profileError;
       }
 
       console.log("Operation successful");
