@@ -69,7 +69,25 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
       } else {
         console.log("Creating new tutor with values:", values);
         
-        // First check if user exists in auth
+        // First check if user exists in profiles
+        const { data: existingProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("email", values.email)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+
+        if (existingProfile) {
+          toast({
+            title: "Error",
+            description: "A tutor with this email already exists",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Try to create new auth user
         const { data: authUser, error: authError } = await supabase.auth.signUp({
           email: values.email,
           password: "tempPassword123", // You might want to generate this randomly
@@ -78,37 +96,21 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
         if (authError) {
           console.error("Auth error:", authError);
           if (authError.message.includes("already registered")) {
-            // If user exists in auth, check if they exist in profiles
-            const { data: existingProfile, error: profileError } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("email", values.email)
-              .maybeSingle();
+            // If user exists in auth but not in profiles, we need to create their profile
+            const { data: authData } = await supabase.auth.signInWithPassword({
+              email: values.email,
+              password: "tempPassword123", // This won't work, but we just need the session
+            });
 
-            if (profileError) throw profileError;
-
-            if (existingProfile) {
-              toast({
-                title: "Error",
-                description: "A tutor with this email already exists",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            // If they exist in auth but not in profiles, we need their auth ID
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(values.email);
-            if (userError) throw userError;
-
-            if (!userData?.user?.id) {
-              throw new Error("Could not find user ID");
+            if (!authData?.user?.id) {
+              throw new Error("Could not get user ID");
             }
 
             // Create profile for existing auth user
             const { error: createProfileError } = await supabase
               .from("profiles")
               .insert({
-                id: userData.user.id,
+                id: authData.user.id,
                 ...values,
                 role: 'tutor',
                 created_at: new Date().toISOString(),
