@@ -52,7 +52,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
     try {
       console.log("Submitting tutor form:", { isEditing, values });
       
-      if (isEditing) {
+      if (isEditing && tutor) {
         console.log("Updating existing tutor:", { tutorId: tutor.id, values });
         const { error } = await supabase
           .from("profiles")
@@ -62,7 +62,24 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
           })
           .eq("id", tutor.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating tutor:", error);
+          throw error;
+        }
+
+        // Verify the update was successful
+        const { data: updatedTutor, error: fetchError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", tutor.id)
+          .single();
+
+        if (fetchError) {
+          console.error("Error fetching updated tutor:", fetchError);
+          throw fetchError;
+        }
+
+        console.log("Successfully updated tutor:", updatedTutor);
       } else {
         console.log("Creating new tutor with values:", values);
         const { data: existingUser, error: checkError } = await supabase

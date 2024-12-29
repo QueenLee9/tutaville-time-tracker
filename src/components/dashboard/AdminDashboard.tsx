@@ -49,8 +49,10 @@ export const AdminDashboard = () => {
       console.log("Fetched tutors:", tutorsResponse.data);
       console.log("Fetched tutor subjects:", tutorSubjectsResponse.data);
 
+      // Filter out tutors with no email (likely incomplete records)
+      const validTutors = tutorsResponse.data.filter(tutor => tutor.email);
+      setTutors(validTutors);
       setSubjects(subjectsResponse.data || []);
-      setTutors(tutorsResponse.data || []);
       setTutorSubjects(tutorSubjectsResponse.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -257,7 +259,11 @@ export const AdminDashboard = () => {
               {tutors.map((tutor) => (
                 <div key={tutor.id} className="flex items-center justify-between p-4 bg-warm-gray-50 rounded-lg">
                   <div>
-                    <h4 className="font-medium">{tutor.first_name} {tutor.last_name}</h4>
+                    <h4 className="font-medium">
+                      {tutor.first_name && tutor.last_name 
+                        ? `${tutor.first_name} ${tutor.last_name}`
+                        : tutor.email || 'Unnamed Tutor'}
+                    </h4>
                     <p className="text-sm text-gray-600">{tutor.email}</p>
                   </div>
                   <div className="space-x-2">
@@ -275,7 +281,7 @@ export const AdminDashboard = () => {
                         <DialogHeader>
                           <DialogTitle>Edit Tutor</DialogTitle>
                         </DialogHeader>
-                        <TutorForm tutor={selectedTutor || undefined} onSuccess={fetchData} />
+                        <TutorForm tutor={tutor} onSuccess={fetchData} />
                       </DialogContent>
                     </Dialog>
                     <Dialog>
@@ -293,9 +299,9 @@ export const AdminDashboard = () => {
                           <DialogTitle>Assign Subjects & Rates</DialogTitle>
                         </DialogHeader>
                         <TutorSubjectForm 
-                          tutor={selectedTutor || undefined} 
+                          tutor={tutor} 
                           subjects={subjects}
-                          existingAssignments={tutorSubjects.filter(ts => ts.tutor_id === selectedTutor?.id)}
+                          existingAssignments={tutorSubjects.filter(ts => ts.tutor_id === tutor.id)}
                           onSuccess={fetchData} 
                         />
                       </DialogContent>
