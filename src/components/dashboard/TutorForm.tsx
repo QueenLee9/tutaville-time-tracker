@@ -69,48 +69,35 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
       } else {
         console.log("Creating new tutor with values:", values);
         
-        // First check if user exists in profiles
-        const { data: existingProfile, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("email", values.email)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-
-        if (existingProfile) {
-          toast({
-            title: "Tutor Already Exists",
-            description: "A tutor with this email address is already registered in the system.",
-            variant: "destructive",
+        try {
+          const response = await fetch("/functions/v1/invite-tutor", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify(values),
           });
-          return;
-        }
 
-        // Use Supabase's invite user functionality
-        const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(values.email, {
-          data: {
-            first_name: values.first_name,
-            last_name: values.last_name,
-            phone: values.phone,
-            role: 'tutor'
+          const result = await response.json();
+
+          if (!response.ok) {
+            if (result.error === 'User already exists') {
+              toast({
+                title: "Tutor Already Exists",
+                description: "A tutor with this email address is already registered in the system.",
+                variant: "destructive",
+              });
+              return;
+            }
+            throw new Error(result.error);
           }
-        });
 
-        if (inviteError) {
-          console.error("Invite error:", inviteError);
-          if (inviteError.message.includes("already registered")) {
-            toast({
-              title: "Tutor Already Exists",
-              description: "A tutor with this email address is already registered in the system.",
-              variant: "destructive",
-            });
-            return;
-          }
-          throw inviteError;
+          console.log("Successfully invited tutor:", result);
+        } catch (error) {
+          console.error("Error inviting tutor:", error);
+          throw error;
         }
-
-        console.log("Successfully invited tutor:", inviteData);
       }
 
       console.log("Operation successful");
