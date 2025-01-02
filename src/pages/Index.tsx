@@ -31,6 +31,7 @@ const Index = () => {
     const handleAuthError = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const error = urlParams.get('error_description');
+      const errorType = urlParams.get('error');
       
       if (error?.includes("User already registered")) {
         toast({
@@ -38,20 +39,16 @@ const Index = () => {
           description: "This email is already registered. Please sign in instead.",
           variant: "destructive",
         });
+      } else if (errorType === 'invalid_grant') {
+        toast({
+          title: "Invalid Credentials",
+          description: "The email or password you entered is incorrect. Please try again.",
+          variant: "destructive",
+        });
       } else if (error) {
         toast({
           title: "Error",
           description: "An error occurred during authentication. Please try again.",
-          variant: "destructive",
-        });
-      }
-
-      // New error handling for login credentials
-      const loginError = urlParams.get('error');
-      if (loginError === 'invalid_credentials') {
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive",
         });
       }

@@ -50,6 +50,28 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
     },
   });
 
+  const sendWelcomeEmail = async (email: string, firstName: string, lastName: string) => {
+    try {
+      const response = await fetch("/functions/v1/send-welcome-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email, firstName, lastName }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send welcome email");
+      }
+
+      console.log("Welcome email sent successfully");
+    } catch (error) {
+      console.error("Error sending welcome email:", error);
+      throw error;
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     try {
       console.log("Submitting tutor form:", { isEditing, values });
@@ -90,7 +112,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
         // Try to create new auth user
         const { data: authUser, error: authError } = await supabase.auth.signUp({
           email: values.email,
-          password: "tempPassword123", // You might want to generate this randomly
+          password: "tempPassword123", // Temporary password, user will set their own via email
         });
 
         if (authError) {
@@ -119,13 +141,16 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             .eq("id", authUser.user.id);
 
           if (profileError) throw profileError;
+
+          // Send welcome email
+          await sendWelcomeEmail(values.email, values.first_name, values.last_name);
         }
       }
 
       console.log("Operation successful");
       toast({
         title: "Success",
-        description: `Tutor ${isEditing ? "updated" : "added"} successfully`,
+        description: `Tutor ${isEditing ? "updated" : "added"} successfully${!isEditing ? ". An invitation email has been sent." : ""}`,
       });
       
       onSuccess();
