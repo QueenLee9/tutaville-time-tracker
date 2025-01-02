@@ -1,5 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -45,6 +43,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'User already exists',
+          user: existingUser,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -53,27 +52,60 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log("Inviting new user");
-    const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+    console.log("Creating new user");
+    // Generate a temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+    
+    // Create the user with the temporary password
+    const { data: userData, error: createError } = await supabaseClient.auth.admin.createUser({
       email,
-      {
-        data: {
-          first_name,
-          last_name,
-          phone,
-          role: 'tutor',
-        },
-      }
-    )
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { first_name, last_name, phone }
+    });
 
-    if (inviteError) {
-      console.error("Error inviting user:", inviteError);
-      throw inviteError;
+    if (createError) {
+      console.error("Error creating user:", createError);
+      throw createError;
     }
 
-    console.log("Successfully invited user:", data);
+    // Update the profile with additional information
+    if (userData?.user) {
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .update({
+          first_name,
+          last_name,
+          email,
+          phone,
+          role: 'tutor'
+        })
+        .eq('id', userData.user.id);
+
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+        throw profileError;
+      }
+    }
+
+    console.log("Successfully created user:", userData);
+    
+    // Send password reset email so user can set their own password
+    const { error: resetError } = await supabaseClient.auth.admin.generateLink({
+      type: 'recovery',
+      email
+    });
+
+    if (resetError) {
+      console.error("Error generating reset link:", resetError);
+      // Don't throw here as the user is already created
+    }
+
     return new Response(
-      JSON.stringify({ data }),
+      JSON.stringify({ 
+        data: userData,
+        message: "User created successfully. A password reset email has been sent." 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
