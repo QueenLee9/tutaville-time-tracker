@@ -69,37 +69,16 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
       } else {
         console.log("Creating new tutor with values:", values);
         
-        try {
-          const response = await fetch("/functions/v1/invite-tutor", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              // Use the anon key from the supabase client
-              Authorization: `Bearer ${supabase.supabaseKey}`,
-            },
-            body: JSON.stringify(values),
-          });
+        const { data, error } = await supabase.functions.invoke('invite-tutor', {
+          body: values
+        });
 
-          const result = await response.json();
-          console.log("Invite tutor response:", result);
-
-          if (!response.ok) {
-            if (result.error === 'User already exists') {
-              toast({
-                title: "Tutor Already Exists",
-                description: "A tutor with this email address is already registered in the system.",
-                variant: "destructive",
-              });
-              return;
-            }
-            throw new Error(result.error || 'Failed to invite tutor');
-          }
-
-          console.log("Successfully invited tutor:", result);
-        } catch (error) {
+        if (error) {
           console.error("Error inviting tutor:", error);
           throw error;
         }
+
+        console.log("Successfully invited tutor:", data);
       }
 
       console.log("Operation successful");
