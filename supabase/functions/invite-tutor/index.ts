@@ -6,11 +6,14 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log("Starting invite-tutor function");
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -23,16 +26,22 @@ Deno.serve(async (req) => {
     )
 
     const { email, first_name, last_name, phone } = await req.json()
+    console.log("Received data:", { email, first_name, last_name, phone });
 
+    // First check if user already exists
     const { data: existingUser, error: checkError } = await supabaseClient
       .from('profiles')
       .select('*')
       .eq('email', email)
       .maybeSingle()
 
-    if (checkError) throw checkError
+    if (checkError) {
+      console.error("Error checking existing user:", checkError);
+      throw checkError;
+    }
 
     if (existingUser) {
+      console.log("User already exists:", existingUser);
       return new Response(
         JSON.stringify({
           error: 'User already exists',
@@ -44,6 +53,7 @@ Deno.serve(async (req) => {
       )
     }
 
+    console.log("Inviting new user");
     const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
       email,
       {
@@ -56,8 +66,12 @@ Deno.serve(async (req) => {
       }
     )
 
-    if (inviteError) throw inviteError
+    if (inviteError) {
+      console.error("Error inviting user:", inviteError);
+      throw inviteError;
+    }
 
+    console.log("Successfully invited user:", data);
     return new Response(
       JSON.stringify({ data }),
       {
@@ -66,6 +80,7 @@ Deno.serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error("Error in invite-tutor function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

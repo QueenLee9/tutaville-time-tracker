@@ -1,1 +1,4 @@
 project_id = "payxlkocpgwganjtnuzm"
+
+[functions.invite-tutor]
+verify_jwt = false
