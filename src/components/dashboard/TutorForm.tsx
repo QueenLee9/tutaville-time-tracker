@@ -74,12 +74,14 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+              // Use the anon key from the supabase client
+              Authorization: `Bearer ${supabase.supabaseKey}`,
             },
             body: JSON.stringify(values),
           });
 
           const result = await response.json();
+          console.log("Invite tutor response:", result);
 
           if (!response.ok) {
             if (result.error === 'User already exists') {
@@ -90,7 +92,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
               });
               return;
             }
-            throw new Error(result.error);
+            throw new Error(result.error || 'Failed to invite tutor');
           }
 
           console.log("Successfully invited tutor:", result);
@@ -114,7 +116,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
       console.error("Error saving tutor:", error);
       toast({
         title: "Error",
-        description: `Failed to ${isEditing ? "update" : "add"} tutor`,
+        description: `Failed to ${isEditing ? "update" : "add"} tutor: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
