@@ -38,7 +38,11 @@ export const AdminDashboard = () => {
       console.log("Fetching admin dashboard data...");
       const [subjectsResponse, tutorsResponse, tutorSubjectsResponse] = await Promise.all([
         supabase.from('subjects').select('*').order('name'),
-        supabase.from('profiles').select('*').eq('role', 'tutor'),
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('role', 'tutor')
+          .order('created_at', { ascending: false }),
         supabase.from('tutor_subjects').select('*')
       ]);
       
@@ -50,7 +54,10 @@ export const AdminDashboard = () => {
       console.log("Fetched tutors:", tutorsResponse.data);
       console.log("Fetched tutor subjects:", tutorSubjectsResponse.data);
 
-      setTutors(tutorsResponse.data || []);
+      // Filter out null email tutors as they might be incomplete records
+      const validTutors = tutorsResponse.data.filter(tutor => tutor.email !== null);
+      
+      setTutors(validTutors);
       setSubjects(subjectsResponse.data || []);
       setTutorSubjects(tutorSubjectsResponse.data || []);
     } catch (error) {
@@ -79,8 +86,8 @@ export const AdminDashboard = () => {
         description: "Subject added successfully",
       });
 
-      await fetchData(); // Immediately refresh data
-      setAddSubjectDialogOpen(false); // Close dialog after success
+      await fetchData();
+      setAddSubjectDialogOpen(false);
     } catch (error) {
       console.error('Error adding subject:', error);
       toast({
@@ -118,9 +125,12 @@ export const AdminDashboard = () => {
         description: "Tutor deleted successfully",
       });
 
+      // Update local state immediately
+      setTutors(current => current.filter(t => t.id !== selectedTutor.id));
+      setTutorSubjects(current => current.filter(ts => ts.tutor_id !== selectedTutor.id));
+      
       setShowDeleteTutorDialog(false);
       setSelectedTutor(null);
-      await fetchData(); // Immediately refresh data
     } catch (error) {
       console.error('Error deleting tutor:', error);
       toast({
@@ -158,9 +168,12 @@ export const AdminDashboard = () => {
         description: "Subject deleted successfully",
       });
 
+      // Update local state immediately
+      setSubjects(current => current.filter(s => s.id !== selectedSubject.id));
+      setTutorSubjects(current => current.filter(ts => ts.subject_id !== selectedSubject.id));
+
       setShowDeleteSubjectDialog(false);
       setSelectedSubject(null);
-      await fetchData(); // Immediately refresh data
     } catch (error) {
       console.error('Error deleting subject:', error);
       toast({

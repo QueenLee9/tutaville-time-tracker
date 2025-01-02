@@ -95,33 +95,10 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
 
         if (authError) {
           console.error("Auth error:", authError);
-          if (authError.message.includes("already registered")) {
-            // If user exists in auth but not in profiles, we need to create their profile
-            const { data: authData } = await supabase.auth.signInWithPassword({
-              email: values.email,
-              password: "tempPassword123", // This won't work, but we just need the session
-            });
+          throw authError;
+        }
 
-            if (!authData?.user?.id) {
-              throw new Error("Could not get user ID");
-            }
-
-            // Create profile for existing auth user
-            const { error: createProfileError } = await supabase
-              .from("profiles")
-              .insert({
-                id: authData.user.id,
-                ...values,
-                role: 'tutor',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              });
-
-            if (createProfileError) throw createProfileError;
-          } else {
-            throw authError;
-          }
-        } else if (authUser?.user?.id) {
+        if (authUser?.user?.id) {
           // New user created in auth, update their profile
           const { error: profileError } = await supabase
             .from("profiles")
@@ -195,7 +172,7 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" {...field} disabled={isEditing} />
+                <Input type="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
