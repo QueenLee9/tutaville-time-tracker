@@ -50,28 +50,6 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
     },
   });
 
-  const sendWelcomeEmail = async (email: string, firstName: string, lastName: string) => {
-    try {
-      const response = await fetch("/functions/v1/send-welcome-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ email, firstName, lastName }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send welcome email");
-      }
-
-      console.log("Welcome email sent successfully");
-    } catch (error) {
-      console.error("Error sending welcome email:", error);
-      throw error;
-    }
-  };
-
   const onSubmit = async (values: FormValues) => {
     try {
       console.log("Submitting tutor form:", { isEditing, values });
@@ -109,15 +87,19 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
           return;
         }
 
-        // Try to create new auth user
-        const { data: authUser, error: authError } = await supabase.auth.signUp({
-          email: values.email,
-          password: "tempPassword123", // Temporary password, user will set their own via email
+        // Use Supabase's invite user functionality
+        const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(values.email, {
+          data: {
+            first_name: values.first_name,
+            last_name: values.last_name,
+            phone: values.phone,
+            role: 'tutor'
+          }
         });
 
-        if (authError) {
-          console.error("Auth error:", authError);
-          if (authError.message.includes("already registered")) {
+        if (inviteError) {
+          console.error("Invite error:", inviteError);
+          if (inviteError.message.includes("already registered")) {
             toast({
               title: "Tutor Already Exists",
               description: "A tutor with this email address is already registered in the system.",
@@ -125,26 +107,10 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
             });
             return;
           }
-          throw authError;
+          throw inviteError;
         }
 
-        if (authUser?.user?.id) {
-          // New user created in auth, update their profile
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .update({
-              ...values,
-              role: 'tutor',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", authUser.user.id);
-
-          if (profileError) throw profileError;
-
-          // Send welcome email
-          await sendWelcomeEmail(values.email, values.first_name, values.last_name);
-        }
+        console.log("Successfully invited tutor:", inviteData);
       }
 
       console.log("Operation successful");
