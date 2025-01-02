@@ -80,8 +80,8 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
 
         if (existingProfile) {
           toast({
-            title: "Error",
-            description: "A tutor with this email already exists",
+            title: "Tutor Already Exists",
+            description: "A tutor with this email address is already registered in the system.",
             variant: "destructive",
           });
           return;
@@ -95,6 +95,14 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
 
         if (authError) {
           console.error("Auth error:", authError);
+          if (authError.message.includes("already registered")) {
+            toast({
+              title: "Tutor Already Exists",
+              description: "A tutor with this email address is already registered in the system.",
+              variant: "destructive",
+            });
+            return;
+          }
           throw authError;
         }
 

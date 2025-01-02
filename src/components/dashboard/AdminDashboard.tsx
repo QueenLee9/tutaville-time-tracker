@@ -54,8 +54,12 @@ export const AdminDashboard = () => {
       console.log("Fetched tutors:", tutorsResponse.data);
       console.log("Fetched tutor subjects:", tutorSubjectsResponse.data);
 
-      // Filter out null email tutors as they might be incomplete records
-      const validTutors = tutorsResponse.data.filter(tutor => tutor.email !== null);
+      // Filter out tutors without email or role not set to 'tutor'
+      const validTutors = (tutorsResponse.data || []).filter(tutor => 
+        tutor.email !== null && tutor.role === 'tutor'
+      );
+      
+      console.log("Filtered valid tutors:", validTutors);
       
       setTutors(validTutors);
       setSubjects(subjectsResponse.data || []);
