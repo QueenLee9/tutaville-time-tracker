@@ -75,7 +75,21 @@ export const TutorForm = ({ tutor, onSuccess }: TutorFormProps) => {
 
         if (error) {
           console.error("Error inviting tutor:", error);
-          throw error;
+          // Parse the error message to check if it's a "User already exists" error
+          try {
+            const errorBody = JSON.parse(error.message);
+            if (errorBody.error === "User already exists") {
+              toast({
+                title: "User Already Exists",
+                description: "This email is already registered in the system.",
+                variant: "destructive",
+              });
+              return;
+            }
+          } catch {
+            // If we can't parse the error message, throw the original error
+            throw error;
+          }
         }
 
         console.log("Successfully invited tutor:", data);
