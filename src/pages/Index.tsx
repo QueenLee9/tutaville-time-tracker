@@ -33,10 +33,16 @@ const Index = () => {
       const error = urlParams.get('error_description');
       const errorType = urlParams.get('error');
       
-      if (error?.includes("User already registered")) {
+      if (error?.includes("Invalid login credentials")) {
+        toast({
+          title: "Login Failed",
+          description: "The email or password you entered is incorrect. Please try again.",
+          variant: "destructive",
+        });
+      } else if (error?.includes("User already registered")) {
         toast({
           title: "Account exists",
-          description: "This email is already registered. Please sign in instead.",
+          description: "This email is already registered in the system.",
           variant: "destructive",
         });
       } else if (errorType === 'invalid_grant') {
