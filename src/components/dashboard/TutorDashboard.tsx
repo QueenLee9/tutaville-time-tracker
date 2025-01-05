@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { TimesheetWithSubject } from "@/integrations/supabase/types/timesheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TimesheetForm } from "@/components/timesheet/TimesheetForm"
+import { ProfileManagement } from "@/components/profile/ProfileManagement"
 
 export const TutorDashboard = () => {
   const [timesheets, setTimesheets] = useState<TimesheetWithSubject[]>([])
@@ -91,10 +92,7 @@ export const TutorDashboard = () => {
           </div>
         </TabsContent>
         <TabsContent value="profile">
-          <div className="p-4 bg-white rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Profile Management</h3>
-            <p className="text-gray-500">Profile management coming soon...</p>
-          </div>
+          <ProfileManagement />
         </TabsContent>
       </Tabs>
     </div>
