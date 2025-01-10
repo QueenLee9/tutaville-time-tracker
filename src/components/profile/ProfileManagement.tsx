@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const formSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address").optional(),
   phone: z.string().optional(),
 });
 
@@ -37,6 +38,7 @@ export const ProfileManagement = () => {
     defaultValues: {
       first_name: "",
       last_name: "",
+      email: "",
       phone: "",
     },
   });
@@ -63,6 +65,7 @@ export const ProfileManagement = () => {
           form.reset({
             first_name: profile.first_name || "",
             last_name: profile.last_name || "",
+            email: profile.email || "",
             phone: profile.phone || "",
           });
         }
@@ -116,6 +119,7 @@ export const ProfileManagement = () => {
         .update({
           first_name: values.first_name,
           last_name: values.last_name,
+          email: values.email,
           phone: values.phone,
           updated_at: new Date().toISOString(),
         })
@@ -176,6 +180,20 @@ export const ProfileManagement = () => {
                     <FormLabel>Last Name</FormLabel>
                     <FormControl>
                       <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
