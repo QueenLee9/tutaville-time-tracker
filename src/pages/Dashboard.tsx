@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { TutorDashboard } from "@/components/dashboard/TutorDashboard";
+import Footer from "@/components/layout/Footer";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -143,7 +144,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-warm-gray-50">
+    <div className="min-h-screen bg-warm-gray-50 flex flex-col">
       <header className="bg-blue-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-semibold">
@@ -159,9 +160,11 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {userRole === 'admin' ? <AdminDashboard /> : <TutorDashboard />}
       </main>
+
+      <Footer />
     </div>
   );
 };
