@@ -10,19 +10,34 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log("Active session found, redirecting to dashboard");
+        navigate("/dashboard");
+      }
+    };
+    
+    checkSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
         
         if (event === "SIGNED_IN" && session) {
+          console.log("User signed in, redirecting to dashboard");
           navigate("/dashboard");
         } else if (event === "SIGNED_OUT") {
+          console.log("User signed out, staying on login page");
           navigate("/");
-        } else if (event === "USER_UPDATED" && event.toString() === "SIGNED_UP") {
-          toast({
-            title: "Account created",
-            description: "Please check your email to verify your account",
-          });
+        } else if (event === "TOKEN_REFRESHED") {
+          console.log("Token refreshed successfully");
+        } else if (event === "USER_UPDATED") {
+          console.log("User profile updated");
+          if (session) {
+            navigate("/dashboard");
+          }
         }
       }
     );
@@ -47,8 +62,8 @@ const Index = () => {
         });
       } else if (errorType === 'invalid_grant') {
         toast({
-          title: "Invalid Credentials",
-          description: "The email or password you entered is incorrect. Please try again.",
+          title: "Session Expired",
+          description: "Your session has expired. Please log in again.",
           variant: "destructive",
         });
       } else if (error) {
